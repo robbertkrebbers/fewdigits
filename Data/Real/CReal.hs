@@ -1,4 +1,4 @@
-{-# OPTIONS_GHC -fglasgow-exts #-}
+{-# OPTIONS_GHC -fglasgow-exts -XUndecidableInstances #-}
 module Data.Real.CReal
              (CReal, inject, around,
               approx, approxRange, integerInterval,
@@ -257,9 +257,10 @@ rationalSin tol x | tol <= (abs x) =
 sinCts :: Base :=> (Complete Base)
 sinCts = mkUniformCts id (approx . rationalSin radius)
 
-realSlowSin :: CReal -> CReal
-realSlowSin = bindR sinCts
+realSin :: CReal -> CReal
+realSin = bindR sinCts
 
+{-
 realSin :: CReal -> CReal
 realSin x | 0==m = realSlowSin x'
           | 1==m = realSlowCos x'
@@ -269,6 +270,7 @@ realSin x | 0==m = realSlowSin x'
   n = around (x / realPi2)
   m = n `mod` 4
   x' = x - (realScale (fromInteger n) realPi2)
+-}
 
 rationalCos :: Base -> Base -> CReal
 rationalCos tol x = realBasePolynomialBound (1-2*xP^2) 
@@ -277,9 +279,10 @@ rationalCos tol x = realBasePolynomialBound (1-2*xP^2)
 cosCts :: Base :=> (Complete Base)
 cosCts = mkUniformCts id (approx . rationalCos radius)
 
-realSlowCos :: CReal -> CReal
-realSlowCos = bindR cosCts
+realCos :: CReal -> CReal
+realCos = bindR cosCts
 
+{-
 realCos :: CReal -> CReal
 realCos x | 3==m = realSlowSin x'
           | 0==m = realSlowCos x'
@@ -289,6 +292,7 @@ realCos x | 3==m = realSlowSin x'
   n = around (x / realPi2)
   m = n `mod` 4
   x' = x - (realScale (fromInteger n) realPi2)
+-}
 
 {- computes ln(x).  only valid for 1<=x<2 -}
 rationalSmallLn :: Base -> CReal

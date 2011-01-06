@@ -18,10 +18,10 @@ infixl 6 <+>
 newtype Polynomial a = Poly [a] deriving (Show, Arbitrary)
 
 polyNormalize [] = []
-polyNormalize (a:x) | a==(fromInteger 0) && (null rec) = []
-                    | otherwise = a:rec
+polyNormalize (a:x) | a==(fromInteger 0) && (null recC) = []
+                    | otherwise = a:recC
  where
-  rec = polyNormalize x
+  recC = polyNormalize x
 
 instance (Num a) => Eq (Polynomial a) where
  (Poly p) == (Poly q) = (polyNormalize p) == (polyNormalize q)
