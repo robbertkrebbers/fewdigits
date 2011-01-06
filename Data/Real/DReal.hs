@@ -151,7 +151,7 @@ drealPowerInt x = drealPowerIntBound b x
 {- 
  Computes x_0 / a_0 - x_1 / a_1 + x_2 / a_2 - x_3 / a_3 + ...
   
- The input should suffice the following conditions:
+ The input should met the following conditions:
  * lim i->inf (x_i / a_i) = 0 
  * x_i / a_i >= x_i+1 / a_i+1 >= 0 
 -}
@@ -163,18 +163,19 @@ dAltSum xs as eps = {- trace (show "eps=" ++ show s ++ " k=" ++ show k ++ "\n") 
    k = sumlength 1 (tail xs) (tail as) + 1
    
    {-
-    Compute the length of the prefix of X = x_0 / a_0 - x_1 / a_1 + ... we have 
-    to compute in order to obtain an approximation within eps/2 of X. This is 
-    necesarry because we can only compute the finite sum with a precision of 
-    eps/2. 
-    We do this by computing a k such that (a_k * x^k)^(eps/2k) < eps/2 - eps/2k
+    Compute the length of the prefix of X = x_0 / a_0 - x_1 / a_1 + ... that has
+    to be computed in order to obtain an approximation within eps/2 of X. We 
+    have to compute this length separately because we can only the errors
+    of the coordinates depend on it.
+    
+    We do this by computing a k such that (x_k / a_k)^(eps/(2k)) < eps/2 - eps/(2k)
    -}
    sumlength :: Int -> [Dyadic] -> [Dyadic] -> Int
-   sumlength l (x : xs) (f : fs) = 
-     let delta = ddiv ((s + 1) + ((ilogb 2 . toEnum) l + 1)) x f
+   sumlength l (x : xs) (a : as) = 
+     let delta = ddiv ((s + 1) + ((ilogb 2 . toEnum) l + 1)) x a
      in if delta < Dyadic 1 (((ilogb 2 . toEnum) l + 1) - (s + 1))
        then l 
-       else sumlength (l + 1) xs fs 
+       else sumlength (l + 1) xs as 
    {-
    sumlength :: Int -> [Dyadic] -> [Integer] -> Int
    sumlength l (x : xs) (f : fs) = 
@@ -185,8 +186,8 @@ dAltSum xs as eps = {- trace (show "eps=" ++ show s ++ " k=" ++ show k ++ "\n") 
        
    {- 
     Given [x1, ... xn] [a1, ... an], compute the alternating sum of xi / ai
-    We are allowed to have a total error of eps/2, so we compute each coordinate
-    with a precision of eps/(2 * k).
+    A total error of eps/2 is allowed, so we approximate each coordinate with a 
+    precision of eps/(2k).
    -}
    sum :: Int -> [Dyadic] -> [Dyadic] -> Dyadic
    sum 0 _ _ = 0
@@ -232,7 +233,7 @@ positives = series 1
    series :: Num a => a -> [a]
    series n = n : series (n + 1)
 
-{- Computes arctan (n / d) -}
+{- Computes arctan (n / d). Only valid for n / d < 1 / 2 -}
 dSmallArcTan :: Dyadic -> Dyadic -> DReal
 dSmallArcTan n d = assert (abs n < d * Dyadic 1 (-1)) $
   dAltSum (oddElements $ tail $ dpowers n) (oddElements $ zipWith (*) positives (tail $ dpowers d))
@@ -241,7 +242,7 @@ dArcTan :: Dyadic -> DReal
 dArcTan x | x <= Dyadic (-1) (-1) = negate $ posArcTan $ negate x
           | otherwise             = posArcTan x
   where
-   {-requires (-1/2) < x-}
+   {- Requires (-1/2) < x-}
    posArcTan x | 2 < x              = drealPi2 - dSmallArcTan 1 x
                | Dyadic 1 (-1) <= x = drealPi4 + dSmallArcTan (x - 1) (x + 1)
                | otherwise          = dSmallArcTan x 1
@@ -262,7 +263,6 @@ drealPi = dScalePi 1
 drealPi2 = dScalePi (Dyadic 1 (-1))
 drealPi4 = dScalePi (Dyadic 1 (-2))
 
--- sin
 {- Computes sin (n / d) -}
 dSmallSin :: Dyadic -> Dyadic -> DReal
 dSmallSin n d = dAltSum 
@@ -284,8 +284,9 @@ drealSin :: DReal -> DReal
 drealSin x = drealSinWithInv x 1
 
 {-
- The following definition, which is taken from CoRN, should be faster. But in
- practice, calculating Pi and computing the approximation, turns to be more expensive.
+ The following definition, which is inspired by the definition in CoRN, 
+ should be faster. But in practice, calculating Pi and computing the 
+ approximation, turns out to be too expensive.
 -}
 drealFastSin :: DReal -> DReal
 drealFastSin x = drealSin $ x - drealScale (2 * n) drealPi
@@ -317,13 +318,13 @@ dSqrtCts = mkUniformCts (^2) dSqrt
 drealSqrt :: DReal -> DReal
 drealSqrt = bindDR dSqrtCts
 
-{- computes ln(n / d).  only valid for 1 <= n / d < 2 -}
+{- Computes ln(n / d). Only valid for 1 <= n / d < 2 -}
 dSmallLn :: Dyadic -> Dyadic -> DReal
 dSmallLn n d = assert (1 * d <= n && n < 2 * d) $ dAltSum 
   (tail $ dpowers (n - d)) 
   (zipWith (*) (tail $ dpowers d) positives)
 
-{- requires that 0<=x -}
+{- Requires that 0<=x -}
 dLn :: Dyadic -> DReal
 dLn x | x < 1     = negate (posLn 1 x)
       | otherwise = posLn x 1
@@ -368,7 +369,7 @@ instance Floating DReal where
     (log ((drealTranslate 1 x) / (drealTranslate 1 (negate x))))
 
 danswer :: Int -> DReal -> String
-danswer n x = show (floor $ toQ $ drealScale (10^n) x (1 / 2)) ++ "x10^-" ++ (show n)
+danswer n x = show (round $ toQ $ drealScale (10^n) x (1 / 2)) ++ "x10^-" ++ (show n)
 
 instance Show DReal where
   show = danswer 50
