@@ -17,7 +17,7 @@ problems = [
   ("P05", exp (exp (exp 1)), 100),
   ("P06", log (1 + log (1 + log (1 + log (1 + pi)))), 10),
   ("P07", exp 1000, 200),
-  ("P08", cos (fromRational (10 ^ 50)), 200),
+  ("P08", cos (fromInteger (10 ^ 50)), 200),
   ("P09", sin (3 * log (640320) / sqrt 163), 100),
   ("P11", tan (exp 1) + atan (exp 1) + tanh (exp 1) + atanh (recip (exp 1)), 10),
   ("P12", asin (recip (exp 1)) + cosh (exp 1) + asinh (exp 1), 10),
