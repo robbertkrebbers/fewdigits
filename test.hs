@@ -50,7 +50,7 @@ main = do
     return $! answer (n * m) expC
     t2 <- getCurrentTime
     putStrLn $ name ++ ", n=" ++ show (n * m) 
-      ++ ", D=" ++ show (diffUTCTime t1 t0) 
-      ++ ", C=" ++ show (diffUTCTime t2 t1)
+      ++ ", Dt=" ++ show (diffUTCTime t1 t0) ++ ", Ct=" ++ show (diffUTCTime t2 t1) 
+      ++ ", Da=" ++ (danswer 10 expD) ++  ", Ca=" ++ (answer 10 expC)
     doProblems ps n
 
