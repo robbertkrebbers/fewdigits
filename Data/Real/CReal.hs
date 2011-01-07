@@ -10,7 +10,7 @@ module Data.Real.CReal
               realRecipWitness,
               realPowerIntBound, realPowerInt, 
               realBasePolynomialBound, realBasePolynomial2Bound,
-              rationalExp, realExpBound, 
+              rationalExp,  
               rationalSin, realSin, rationalCos, realCos,
               rationalLn, realLnWitness, rationalArcTan, realArcTan,
               scalePi, real2Pi, realPi, realPi2, realPi4,
@@ -86,7 +86,7 @@ approxRange x eps = Interval (r-eps, r+eps)
 proveNonZeroFrom :: Gauge -> CReal -> Base
 proveNonZeroFrom g r | high < 0 = high
                      | 0 < low = low
-                     | otherwise = proveNonZeroFrom (g/2) r
+                     | otherwise = proveNonZeroFrom (g / (2 ^ 32)) r
  where
   Interval (low, high) = approxRange r g
 
@@ -231,15 +231,15 @@ rationalExp tol x | (abs x) <= tol = rationalSmallExp x
                   | otherwise = realPowerInt (rationalExp tol (x/2)) 2
 
 expUniformCts :: Integer -> Base :=> (Complete Base)
-expUniformCts upperBound = mkUniformCts mu (approx . rationalExp radius)
+expUniformCts upperBound = mkUniformCts mu (approx . rationalExp radius . min (fromInteger upperBound))
  where
   mu eps | upperBound <= 0 = eps*(2^(-upperBound))
          | otherwise = eps/(3^upperBound)
 
-realExpBound :: BoundedCReal -> CReal
-realExpBound a@(x,(Interval (_,ub))) =
-  bindR (expUniformCts (ceiling ub)) (choke a)
-
+realExp :: CReal -> CReal
+realExp a = bindR (expUniformCts (ceiling ub)) a
+  where Interval (_,ub) = integerInterval a
+  
 {-Requires that abs(a!!i+1) < abs(a!!i) and the sign of the terms alternate -}
 alternatingSeries :: [Base] -> Complete Base
 alternatingSeries a eps = sumBase partSeries
@@ -384,7 +384,7 @@ realSqrt :: CReal -> CReal
 realSqrt = bindR sqrtCts
 
 instance Floating CReal where
- exp x = realExpBound (compact x)
+ exp = realExp
  log x = realLnWitness (proveNonZero x) x
  pi = realPi
  sin = realSin

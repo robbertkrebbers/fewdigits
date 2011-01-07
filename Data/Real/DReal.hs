@@ -10,6 +10,7 @@ import Data.Bits
 import Control.Exception
 import Combinatorics
 import Data.Interval
+import Debug.Trace
 
 toQ :: Dyadic -> Rational
 toQ (Dyadic m e) = if e >= 0
@@ -67,8 +68,14 @@ drealScale :: Dyadic -> DReal -> DReal
 drealScale 0 = \_ -> 0
 drealScale c = mapDR (dmultBaseCts c)
 
+dBoundAbs :: Dyadic -> Dyadic -> Dyadic
+dBoundAbs c = min c . max (-c)
+
+dBoundAbsUniformCts :: Dyadic -> Dyadic :=> Dyadic
+dBoundAbsUniformCts c = mkUniformCts id (dBoundAbs c)
+
 dmultUniformCts :: Dyadic -> Dyadic :=> Dyadic :=> Dyadic
-dmultUniformCts maxy = mkUniformCts mu dmultBaseCts
+dmultUniformCts maxy = mkUniformCts mu (\x -> dmultBaseCts x `o` dBoundAbsUniformCts maxy)
   where
    mu eps = assert (maxy > 0) (eps / (toQ maxy))
 
@@ -86,15 +93,16 @@ dapproxRange x eps = Interval (r - eps, r + eps)
   where 
    r = x (toQ eps)
 
-dproveNonZeroFrom :: Dyadic -> DReal -> Dyadic
-dproveNonZeroFrom g r | high < 0  = high
+dproveNonZeroFrom :: Int -> DReal -> Dyadic
+dproveNonZeroFrom k x | high < 0  = high
                       | 0 < low   = low
-                      | otherwise = dproveNonZeroFrom (dshift g (-1)) r
+                      | otherwise = dproveNonZeroFrom (32 + k) x
  where
-  Interval (low, high) = dapproxRange r g
+  eps = Dyadic 1 (-k)
+  Interval (low, high) = dapproxRange x eps
 
 dproveNonZero :: DReal -> Dyadic
-dproveNonZero x = dproveNonZeroFrom 1 x
+dproveNonZero x = dproveNonZeroFrom 0 x 
 
 dabsCts = mkUniformCts id abs
 
@@ -116,15 +124,15 @@ instance Num DReal where
 dInv :: Dyadic -> DReal
 dInv x eps = dinv (toStage eps) x
 
-dinvBaseCts :: Dyadic -> Dyadic :=> DReal
-dinvBaseCts nonZero = mkUniformCts mu f
+dInvBaseCts :: Dyadic -> Dyadic :=> DReal
+dInvBaseCts nonZero = mkUniformCts mu f
   where
-   f x | 0 <= nonZero = dInv x
-       | otherwise    = dInv x
+   f x | 0 <= nonZero = dInv (max nonZero x)
+       | otherwise    = dInv (min nonZero x)
    mu eps = toQ (nonZero * nonZero) * eps
 
 drealInvWitness :: Dyadic -> DReal -> DReal
-drealInvWitness nonZero = bindDR $ dinvBaseCts nonZero
+drealInvWitness nonZero = bindDR $ dInvBaseCts nonZero
 
 drealInv :: DReal -> DReal
 drealInv x = drealInvWitness (dproveNonZero x) x
@@ -136,7 +144,7 @@ instance Fractional DReal where
 -- Int pow
 dintPowerCts :: (Integral int) => Dyadic -> int -> Dyadic :=> Dyadic
 dintPowerCts _ 0 = constCts 1
-dintPowerCts maxx n = mkUniformCts mu (^n)
+dintPowerCts maxx n = mkUniformCts mu (\x -> (dBoundAbs x maxx)^n)
   where
    mu eps = assert (maxx > 0) $ eps / (fromIntegral n * (toQ maxx)^(n-1))
 
@@ -151,7 +159,7 @@ drealPowerInt x = drealPowerIntBound b x
 {- 
  Computes x_0 / a_0 - x_1 / a_1 + x_2 / a_2 - x_3 / a_3 + ...
   
- The input should met the following conditions:
+ The input should meet the following conditions:
  * lim i->inf (x_i / a_i) = 0 
  * x_i / a_i >= x_i+1 / a_i+1 >= 0 
 -}
@@ -211,7 +219,7 @@ dExp x | 0 <= x    = recip (dExpNeg (-x))
        | otherwise = dExpNeg x
 
 dExpUniformCts :: Integer -> Dyadic :=> DReal
-dExpUniformCts upperBound = mkUniformCts mu dExp
+dExpUniformCts upperBound = mkUniformCts mu (dExp . min (fromInteger upperBound))
   where
    mu eps | upperBound <= 0 = eps * 2 ^ (-upperBound)
           | otherwise       = eps / (3 ^ upperBound)
@@ -324,7 +332,7 @@ dSmallLn n d = assert (1 * d <= n && n < 2 * d) $ dAltSum
   (tail $ dpowers (n - d)) 
   (zipWith (*) (tail $ dpowers d) positives)
 
-{- Requires that 0<=x -}
+{- Requires that 0 < x -}
 dLn :: Dyadic -> DReal
 dLn x | x < 1     = negate (posLn 1 x)
       | otherwise = posLn x 1
@@ -341,9 +349,9 @@ dLn x | x < 1     = negate (posLn 1 x)
 
 {- domain is [nonZero, inf) -}
 dLnUniformCts :: Dyadic -> Dyadic :=> DReal
-dLnUniformCts nonZero = mkUniformCts mu dLn
+dLnUniformCts nonZero = assert (0 < nonZero) $ mkUniformCts mu (\x -> dLn (max x nonZero))
   where
-   mu eps = assert (nonZero > 0) $ eps * toQ nonZero
+   mu eps = eps * toQ nonZero
 
 drealLnWitness :: Dyadic -> DReal -> DReal
 drealLnWitness nonZero = bindDR $ dLnUniformCts nonZero
