@@ -32,13 +32,13 @@ dcompress x eps =
   in if (expo d <= 0) then dnormalize (toStage (eps/2)) d else d
 
 mapDR :: (Dyadic :=> Dyadic) -> DReal -> DReal
-mapDR f x = mapC f (dcompress x)
+mapDR f x = dcompress $ mapC f x
 
 mapDR2 :: (Dyadic :=> Dyadic :=> Dyadic) -> DReal -> DReal -> DReal
-mapDR2 f x y = mapC2 f (dcompress x) (dcompress y)
+mapDR2 f x y = dcompress $ mapC2 f x y
 
 bindDR :: (Dyadic :=> DReal) -> DReal -> DReal
-bindDR f x = bind f (dcompress x)
+bindDR f x = dcompress $ bind f x
 
 -- Negate
 drealNegate :: DReal -> DReal

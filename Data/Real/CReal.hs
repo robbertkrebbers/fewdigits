@@ -10,7 +10,7 @@ module Data.Real.CReal
               realRecipWitness,
               realPowerIntBound, realPowerInt, 
               realBasePolynomialBound, realBasePolynomial2Bound,
-              rationalExp,  
+              rationalExp, realExpBound,
               rationalSin, realSin, rationalCos, realCos,
               rationalLn, realLnWitness, rationalArcTan, realArcTan,
               scalePi, real2Pi, realPi, realPi2, realPi4,
@@ -65,12 +65,13 @@ choke (CReal x, (Interval (lb,ub))) = CReal f
 compress :: Complete Base -> Complete Base
 compress x eps = approxBase (x (eps/2)) (eps/2)
 
-mapCR f (CReal x) = CReal $ mapC f (compress x)
+compress' (CReal x) = CReal (compress x)
 
-mapCR2 f (CReal x) (CReal y) = 
-  CReal $ mapC2 f (compress x) (compress y)
+mapCR f (CReal x) = CReal $ compress $ mapC f x
 
-bindR f (CReal x) = CReal $ bind f (compress x)
+mapCR2 f (CReal x) (CReal y) = CReal $ compress $ mapC2 f x y
+
+bindR f (CReal x) = CReal $ compress $ bind f x
 
 instance Show CReal where
  show x = error "Cannot show a CReal"
@@ -231,14 +232,14 @@ rationalExp tol x | (abs x) <= tol = rationalSmallExp x
                   | otherwise = realPowerInt (rationalExp tol (x/2)) 2
 
 expUniformCts :: Integer -> Base :=> (Complete Base)
-expUniformCts upperBound = mkUniformCts mu (approx . rationalExp radius . min (fromInteger upperBound))
+expUniformCts upperBound = mkUniformCts mu (approx . rationalExp radius)
  where
   mu eps | upperBound <= 0 = eps*(2^(-upperBound))
          | otherwise = eps/(3^upperBound)
 
-realExp :: CReal -> CReal
-realExp a = bindR (expUniformCts (ceiling ub)) a
-  where Interval (_,ub) = integerInterval a
+realExpBound :: BoundedCReal -> CReal
+realExpBound a@(x,(Interval (_,ub))) =
+  bindR (expUniformCts (ceiling ub)) (choke a)
   
 {-Requires that abs(a!!i+1) < abs(a!!i) and the sign of the terms alternate -}
 alternatingSeries :: [Base] -> Complete Base
@@ -384,7 +385,7 @@ realSqrt :: CReal -> CReal
 realSqrt = bindR sqrtCts
 
 instance Floating CReal where
- exp = realExp
+ exp x = realExpBound (compact x)
  log x = realLnWitness (proveNonZero x) x
  pi = realPi
  sin = realSin
