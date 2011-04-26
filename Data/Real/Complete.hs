@@ -1,4 +1,5 @@
-{-# OPTIONS_GHC -fglasgow-exts #-}
+{-# OPTIONS -XTypeOperators #-}
+
 module Data.Real.Complete 
                 (Gauge, Complete, unit, join, mapC, bind, mapC2,
                  (:=>), mkUniformCts, modulus, forgetUniformCts,

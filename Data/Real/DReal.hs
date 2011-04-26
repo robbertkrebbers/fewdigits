@@ -1,4 +1,5 @@
-{-# OPTIONS_GHC -fglasgow-exts #-}
+{-# OPTIONS -XTypeOperators #-}
+{-# OPTIONS -XTypeSynonymInstances #-}
 
 module Data.Real.DReal 
 where

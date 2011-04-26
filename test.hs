@@ -1,4 +1,4 @@
-{-# OPTIONS_GHC -fglasgow-exts #-}
+{-# OPTIONS -XTypeSynonymInstances #-}
 
 import Data.Real.CReal
 import Data.Real.DReal

@@ -1,5 +1,9 @@
-{-# OPTIONS_GHC -fglasgow-exts #-}
-module Data.Multinomial 
+{-# OPTIONS -XMultiParamTypeClasses #-}
+{-# OPTIONS -XFlexibleInstances #-}
+{-# OPTIONS -XTypeSynonymInstances #-}
+{-# OPTIONS -XGeneralizedNewtypeDeriving #-}
+
+module Data.Multinomial
                    (Polynomial, xP, yP, zP, constP, o,
                     evalP, degree,
                     BoundPolynomial, boundPolynomial,
@@ -10,7 +14,7 @@ module Data.Multinomial
 import Data.Interval
 import Combinatorics
 import Control.Exception
-import Test.QuickCheck hiding (choose,two)
+import Test.QuickCheck hiding (choose)
 
 infixr 7 <*>
 infixl 6 <+>

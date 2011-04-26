@@ -1,4 +1,3 @@
-{-# OPTIONS_GHC -fglasgow-exts #-}
 module Data.Interval 
                 (Interval(Interval), point, isIn,
                  intervalNegate, intervalAbs,
@@ -62,5 +61,7 @@ instance (Arbitrary a, Ord a) => Arbitrary (Interval a) where
                 y <- arbitrary
                 if x < y then return $ Interval (x,y)
                          else return $ Interval (y,x)
+
+instance (CoArbitrary a, Ord a) => CoArbitrary (Interval a) where
  coarbitrary (Interval (x,y)) = coarbitrary x .
                                 coarbitrary y

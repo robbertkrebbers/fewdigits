@@ -1,4 +1,10 @@
-{-# OPTIONS_GHC -fglasgow-exts -XUndecidableInstances #-}
+{-# OPTIONS -XUndecidableInstances #-}
+{-# OPTIONS -XTypeOperators #-}
+{-# OPTIONS -XMultiParamTypeClasses #-}
+{-# OPTIONS -XFunctionalDependencies #-}
+{-# OPTIONS -XFlexibleInstances #-}
+
+
 module Data.Real.CReal
              (CReal, inject, around,
               approx, approxRange, integerInterval,
