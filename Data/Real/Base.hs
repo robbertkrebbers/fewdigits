@@ -1,7 +1,7 @@
 module Data.Real.Base (Base, approxBase, powers, sumBase) where
 
 import Data.Real.Gauge
-import Ratio
+import Data.Ratio
 import Data.Bits
 import Test.QuickCheck
 import GHC.Real

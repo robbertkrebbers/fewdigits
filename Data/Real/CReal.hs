@@ -27,7 +27,7 @@ module Data.Real.CReal
 
 import Data.Real.Base
 import Data.Real.Complete
-import Maybe
+import Data.Maybe
 import Data.Multinomial
 import Data.Interval
 import Combinatorics

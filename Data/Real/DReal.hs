@@ -6,7 +6,7 @@ where
 
 import Data.Real.Dyadic
 import Data.Real.Complete
-import Ratio
+import Data.Ratio
 import Data.Bits
 import Control.Exception
 import Combinatorics
@@ -165,7 +165,7 @@ drealPowerInt x = drealPowerIntBound b x
  * x_i / a_i >= x_i+1 / a_i+1 >= 0 
 -}
 dAltSum :: [Dyadic] -> [Dyadic] -> DReal
-dAltSum xs as eps = {- trace (show "eps=" ++ show s ++ " k=" ++ show k ++ "\n") $-}
+dAltSum xs as eps =
   sum k xs as
   where
    s = toStage eps
@@ -266,7 +266,7 @@ dScalePi x =
   (drealScale (x * 28) (dSmallArcTan 1 239))) +
  ((drealScale (x * negate 48) (dSmallArcTan 1 682)) +
   (drealScale (x * 96) (dSmallArcTan 1 12943)))
-                
+
 dreal2Pi = dScalePi 2
 drealPi = dScalePi 1
 drealPi2 = dScalePi (Dyadic 1 (-1))
@@ -310,22 +310,59 @@ drealCos x = f $ drealSinWithInv x 2
    f = mapDR $ mkUniformCts (\eps -> eps / 4) (\x -> 1 - dshift (x * x) 1)
 
 -- sqrt
-dSqrt :: Dyadic -> DReal
-dSqrt n | n < 1     = drealScale (Dyadic 1 (-1)) (dSqrt (dshift n 2))
-        | 4 <= n    = drealScale 2 (dSqrt (dshift n (-2)))
-        | otherwise = f
- where
-  f eps = dshift (vf*ef) (-3)
-   where
-    (_,vf,ef) = until (\(u,v,e) -> toQ e <= eps) wolfram (n, 0, 4)
-  wolfram (u,v,e) | u >= v + 1 = (dshift (u-v-1) 2, dshift (v+2) 1, dshift e (-1))
-                  | otherwise = (dshift u 2, dshift v 1, dshift e (-1))
+dSmallWolframSqrt :: Dyadic -> DReal
+dSmallWolframSqrt n eps = dshift (vf*ef) (-3)
+  where
+   (_,vf,ef) = until (\(u,v,e) -> toQ e <= eps) wolfram (n, 0, 4)
+   wolfram (u,v,e) | u >= v + 1 = (dshift (u-v-1) 2, dshift (v+2) 1, dshift e (-1))
+                   | otherwise = (dshift u 2, dshift v 1, dshift e (-1))
 
-dSqrtCts :: Dyadic :=> DReal
-dSqrtCts = mkUniformCts (^2) dSqrt
+{-
+drealSmallNewtonSqrt :: Dyadic -> DReal
+drealSmallNewtonSqrt x = drealScale x (join bounded)
+  where
+   f :: Dyadic -> Dyadic
+   f r = r + r * dshift (1 - r^2 * x) (-1)
+   
+   fCts :: Dyadic :=> Dyadic
+   fCts = mkUniformCts (\e -> 2 / 9 * e) f
 
-drealSqrt :: DReal -> DReal
-drealSqrt = bindDR dSqrtCts
+   bounded :: Complete DReal
+   bounded eps = (iterate (mapDR fCts) 1 !! k)
+    where
+     (k,_) = until (\(_,e) -> e <= eps) (\(i,e) -> (i+1, e^2)) (2, 1/2)
+-}
+
+drealSmallNewtonSqrt :: Dyadic -> DReal
+drealSmallNewtonSqrt x = join bounded
+  where
+   f :: Dyadic -> DReal
+   f r eps = dshift (r + ddiv (toStage eps) x r) (-1)
+   
+   fCts :: Dyadic :=> DReal
+   fCts = mkUniformCts (\e -> 1 / 3 * e) f
+
+   bounded :: Complete DReal
+   bounded eps = (iterate (bind fCts) 1 !! k)
+    where
+     (k,_) = until (\(_,e) -> e <= eps) (\(i,e) -> (i+1, e^2 / 2)) (2, 1/2)
+
+dBigSqrt :: (Dyadic -> DReal) -> Dyadic -> DReal
+dBigSqrt f n | n < 1     = drealScale (Dyadic 1 (-1)) (dBigSqrt f (dshift n 2))
+             | 4 <= n    = drealScale 2 (dBigSqrt f (dshift n (-2)))
+             | otherwise = f n
+
+dSqrtCts :: (Dyadic -> DReal) -> Dyadic :=> DReal
+dSqrtCts f = mkUniformCts (^2) (dBigSqrt f)
+
+drealBigSqrt :: (Dyadic -> DReal) -> DReal -> DReal
+drealBigSqrt f = bindDR (dSqrtCts f)
+  
+drealWolframSqrt :: DReal -> DReal
+drealWolframSqrt = drealBigSqrt dSmallWolframSqrt
+
+drealNewtonSqrt :: DReal -> DReal
+drealNewtonSqrt = drealBigSqrt drealSmallNewtonSqrt
 
 {- Computes ln(n / d). Only valid for 1 <= n / d < 2 -}
 dSmallLn :: Dyadic -> Dyadic -> DReal
@@ -367,7 +404,7 @@ instance Floating DReal where
   sin = drealSin
   cos = drealCos
   atan = drealArcTan
-  sqrt = drealSqrt
+  sqrt = drealNewtonSqrt
   sinh x = drealScale (Dyadic 1 (-1)) (exp x - exp (-x))
   cosh x = drealScale (Dyadic 1 (-1)) (exp x + exp (-x))
   asin x = atan (x/sqrt(drealTranslate 1 (negate (drealPowerInt x 2))))
