@@ -173,9 +173,9 @@ dAltSum xs as eps =
    
    {-
     Compute the length of the prefix of X = x_0 / a_0 - x_1 / a_1 + ... that has
-    to be computed in order to obtain an approximation within eps/2 of X. We 
-    have to compute this length separately because we can only the errors
-    of the coordinates depend on it.
+    to be computed in order to obtain an approximate X with precision eps/2. We 
+    have to compute this length separately because it is mutually dependent with
+    the precision of the divisions.
     
     We do this by computing a k such that (x_k / a_k)^(eps/(2k)) < eps/2 - eps/(2k)
    -}
@@ -378,12 +378,12 @@ dLn x | x < 1     = negate (posLn 1 x)
   ln43 = dSmallLn 4 3
   ln2 = wideLn 2 1
   {- good for 1 <= n/d <= 2 -}
-  wideLn n d | 2 * x < 3 * d = dSmallLn n d
+  wideLn n d | 2 * n < 3 * d = dSmallLn n d
              | otherwise     = dSmallLn (3 * n) (4 * d) + ln43
   {- requires that 1 <= n/d -}
   posLn n d = wideLn n d' + drealScale m ln2
    where
-    (d',m) = until (\(d,m) -> x <= d * 2) (\(d,m) -> (d * 2,m + 1)) (d,0)
+    (d',m) = until (\(d,m) -> n <= d * 2) (\(d,m) -> (d * 2,m + 1)) (d,0)
 
 {- domain is [nonZero, inf) -}
 dLnUniformCts :: Dyadic -> Dyadic :=> DReal
